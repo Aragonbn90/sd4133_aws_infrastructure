@@ -23,9 +23,9 @@ module "eks" {
     vpc-cni = {
       most_recent = true
     }
-    aws-ebs-csi-driver = {
+    aws-ebs-csi-driver = var.create_ebs_csi_driver ? {
       most_recent = true
-    }
+    } : {}
   }
 
   # External encryption key
@@ -36,7 +36,7 @@ module "eks" {
   }
 
   iam_role_additional_policies = {
-    additional = var.aws_iam_policy_arn
+    additional               = aws_iam_policy.additional.arn
   }
 
   vpc_id                   = var.vpc_id
@@ -60,7 +60,7 @@ module "eks" {
       from_port                = 22
       to_port                  = 22
       type                     = "ingress"
-      source_security_group_id = var.aws_security_group_id
+      source_security_group_id = aws_security_group.additional.id
     }
   }
 
@@ -81,7 +81,7 @@ module "eks" {
       from_port                = 22
       to_port                  = 22
       type                     = "ingress"
-      source_security_group_id = var.aws_security_group_id
+      source_security_group_id = aws_security_group.additional.id
     }
   }
 
@@ -129,9 +129,10 @@ module "eks" {
     instance_types = var.instance_types
 
     attach_cluster_primary_security_group = true
-    vpc_security_group_ids                = [var.aws_security_group_id]
+    vpc_security_group_ids                = [aws_security_group.additional.id]
     iam_role_additional_policies = {
-      additional = var.aws_iam_policy_arn
+      additional = aws_iam_policy.additional.arn
+      AmazonEBSCSIDriverPolicy = var.create_ebs_csi_driver ? "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" : null
     }
   }
 
@@ -249,4 +250,39 @@ module "eks" {
   # ]
 
   tags = var.tags
+}
+
+resource "aws_security_group" "additional" {
+  name_prefix = "${var.name}-additional"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
+    cidr_blocks = [
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+    ]
+  }
+
+  tags = merge(var.tags, { Name = "${var.name}-additional" })
+}
+
+resource "aws_iam_policy" "additional" {
+  name = "${var.name}-ec2-describe"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ec2:Describe*",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+    ]
+  })
 }

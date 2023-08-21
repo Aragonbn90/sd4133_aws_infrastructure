@@ -57,11 +57,8 @@ variable "key_arn" {
   type = string
 }
 
-variable "aws_iam_policy_arn" {
-  type = string
-}
-
-variable "aws_security_group_id" {
-  type = string
+variable "create_ebs_csi_driver" {
+  type = bool
+  default = false
 }
 

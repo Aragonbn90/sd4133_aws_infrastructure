@@ -70,8 +70,7 @@ module "computing" {
   intra_subnets         = module.networking.intra_subnets
   tags                  = local.tags
   key_arn               = module.kms.key_arn
-  aws_iam_policy_arn    = aws_iam_policy.additional.arn
-  aws_security_group_id = aws_security_group.additional.id
+  create_ebs_csi_driver = true
 
 }
 
@@ -104,41 +103,6 @@ module "networking" {
   intra_subnets   = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 52)]
   tags            = local.tags
 
-}
-
-resource "aws_security_group" "additional" {
-  name_prefix = "${local.name}-additional"
-  vpc_id      = module.networking.vpc_id
-
-  ingress {
-    from_port = 22
-    to_port   = 22
-    protocol  = "tcp"
-    cidr_blocks = [
-      "10.0.0.0/8",
-      "172.16.0.0/12",
-      "192.168.0.0/16",
-    ]
-  }
-
-  tags = merge(local.tags, { Name = "${local.name}-additional" })
-}
-
-resource "aws_iam_policy" "additional" {
-  name = "${local.name}-additional"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "ec2:Describe*",
-        ]
-        Effect   = "Allow"
-        Resource = "*"
-      },
-    ]
-  })
 }
 
 module "kms" {
