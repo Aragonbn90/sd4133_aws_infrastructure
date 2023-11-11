@@ -1,9 +1,22 @@
 variable "name" {
   type = string
+  nullable = false
+}
+
+variable "eks_type" {
+  type = string
+  description = "One of values: eks_managed, self_managed, fargate"
+  default = "eks_managed"
+  # validation {
+  #   condition = false
+  #   error_message = "Wrong eks type"
+  # }
+  nullable = false
 }
 
 variable "vpc_id" {
   type = string
+  nullable = false
 }
 
 variable "instance_types" {
@@ -13,6 +26,7 @@ variable "instance_types" {
 
 variable "capacity_type" {
   type = string
+  default  = "ON_DEMAND"
 }
 
 variable "min_size" {
@@ -52,6 +66,11 @@ variable "tags" {
 #   type = object({
 #   })
 # }
+
+variable "ami_type" {
+  type = string
+  default = "AL2_x86_64"
+}
 
 variable "key_arn" {
   type = string

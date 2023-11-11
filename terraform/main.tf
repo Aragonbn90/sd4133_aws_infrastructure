@@ -15,6 +15,23 @@ terraform {
   }
 }
 
+locals {
+  name   = "sd4133-" + var.env
+  region = "ap-southeast-1"
+  arn    = "567929707303"
+
+  vpc_cidr = "10.0.0.0/16"
+  azs      = slice(data.aws_availability_zones.available.names, 0, 2)
+
+  ecrs = toset(["backend", "frontend"])
+
+  tags = {
+    github      = "aragonbn90/sd4133_aws_infrastructure"
+    terraform   = "true"
+    env         = var.env
+  }
+}
+
 provider "aws" {
   region = local.region
 }
@@ -34,62 +51,9 @@ provider "aws" {
 data "aws_availability_zones" "available" {}
 data "aws_caller_identity" "current" {}
 
-locals {
-  name   = "sd4133_aws"
-  region = "ap-southeast-1"
-  arn    = "567929707303"
-
-  vpc_cidr = "10.0.0.0/16"
-  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
-
-  ecrs = toset(["backend", "frontend"])
-
-  tags = {
-    Example     = local.name
-    GithubRepo  = "aragonbn90/sd4133_aws_infrastructure"
-    Terraform   = "true"
-    Environment = "dev"
-  }
-}
-
 
 ################################################################################
-# Computing Module
-################################################################################
-
-module "computing" {
-  source = "./modules/eks"
-  vpc_id = module.networking.vpc_id
-  name   = local.name
-
-  instance_types        = ["t2.medium"]
-  capacity_type         = "ON_DEMAND"
-  desired_size          = 2
-  max_size              = 4
-  private_subnets       = module.networking.private_subnets
-  intra_subnets         = module.networking.intra_subnets
-  tags                  = local.tags
-  key_arn               = module.kms.key_arn
-  create_ebs_csi_driver = true
-
-}
-
-################################################################################
-# Container Registry Module
-################################################################################
-
-module "ecr" {
-  for_each         = local.ecrs
-  source           = "./modules/ecr"
-  repository_name  = "${local.name}_${each.value}"
-  arn              = local.arn
-  keep_last_images = 10
-  tags             = local.tags
-}
-
-
-################################################################################
-# Networking module
+# Networking, security module
 ################################################################################
 
 module "networking" {
@@ -107,7 +71,45 @@ module "networking" {
 
 module "kms" {
   source                  = "./modules/kms"
+  prefix                  = "eks"
   name                    = local.name
   aws_caller_identity_arn = data.aws_caller_identity.current.arn
   tags                    = local.tags
 }
+
+
+################################################################################
+# Computing Module
+################################################################################
+
+module "computing" {
+  source = "./modules/eks"
+  vpc_id = module.networking.vpc_id
+  name   = local.name 
+
+  instance_types        = var.instance_types
+  capacity_type         = var.capacity_type
+  min_size              = var.min_size
+  desired_size          = var.desired_size
+  max_size              = var.max_size
+  private_subnets       = module.networking.private_subnets
+  intra_subnets         = module.networking.intra_subnets
+  tags                  = local.tags
+  key_arn               = module.kms.key_arn
+  create_ebs_csi_driver = true
+
+}
+
+################################################################################
+# Container Registry Module
+################################################################################
+
+module "ecr" {
+  for_each         = local.ecrs
+  source           = "./modules/ecr"
+  repository_name  = "${local.name}-${each.value}"
+  arn              = local.arn
+  keep_last_images = 10
+  tags             = local.tags
+}
+
