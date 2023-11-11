@@ -124,7 +124,18 @@ module "eks" {
   } : {}
 
   # EKS Managed Node Group(s)
-  eks_managed_node_group_defaults = (var.eks_type == "eks_managed") ? ({
+  # eks_managed_node_group_defaults = (var.eks_type == "eks_managed") ? ({
+  #   ami_type       = "${var.ami_type}"
+  #   instance_types = "${var.instance_types}"
+
+  #   attach_cluster_primary_security_group = true
+  #   vpc_security_group_ids                = [aws_security_group.additional.id]
+  #   iam_role_additional_policies = {
+  #     additional               = aws_iam_policy.additional.arn
+  #     AmazonEBSCSIDriverPolicy = var.create_ebs_csi_driver ? "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" : null
+  #   }
+  # }) : ({})
+  eks_managed_node_group_defaults = {
     ami_type       = "${var.ami_type}"
     instance_types = "${var.instance_types}"
 
@@ -134,9 +145,10 @@ module "eks" {
       additional               = aws_iam_policy.additional.arn
       AmazonEBSCSIDriverPolicy = var.create_ebs_csi_driver ? "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" : null
     }
-  }) : ({})
+  }
 
-  eks_managed_node_groups = (var.eks_type == "eks_managed") ? {
+  # eks_managed_node_groups = (var.eks_type == "eks_managed") ? {
+  eks_managed_node_groups = {
     # blue = {}
     green = {
       min_size     = var.min_size
@@ -154,7 +166,8 @@ module "eks" {
 
       tags = var.tags
     }
-  } : {}
+    # } : {}
+  }
 
   # # Fargate Profile(s)
   fargate_profiles = (var.eks_type == "fargate") ? {
