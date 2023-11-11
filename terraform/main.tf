@@ -14,10 +14,12 @@ terraform {
       version = "~> 5.0"
     }
   }
+  
 }
 
+
 locals {
-  name   = "sd4133-" + var.env
+  name   = "sd4133-${var.env}"
   region = "ap-southeast-1"
   arn    = "567929707303"
 
