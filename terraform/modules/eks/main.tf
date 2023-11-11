@@ -124,7 +124,7 @@ module "eks" {
   } : {}
 
   # EKS Managed Node Group(s)
-  eks_managed_node_group_defaults = (var.eks_type == "eks_managed") ? {
+  eks_managed_node_group_defaults = var.eks_type == "eks_managed" ? {
     ami_type       = "${var.ami_type}"
     instance_types = "${var.instance_types}"
 
