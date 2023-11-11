@@ -36,7 +36,7 @@ module "eks" {
   }
 
   iam_role_additional_policies = {
-    additional               = aws_iam_policy.additional.arn
+    additional = aws_iam_policy.additional.arn
   }
 
   vpc_id                   = var.vpc_id
@@ -86,56 +86,68 @@ module "eks" {
   }
 
   # Self Managed Node Group(s)
-  # self_managed_node_group_defaults = {
-  #   vpc_security_group_ids = [aws_security_group.additional.id]
-  #   iam_role_additional_policies = {
-  #     additional = aws_iam_policy.additional.arn
-  #   }
+  self_managed_node_group_defaults = (var.eks_type == "self_managed") ? {
+    # vpc_security_group_ids = [aws_security_group.additional.id]
+    # iam_role_additional_policies = {
+    #   additional = aws_iam_policy.additional.arn
+    # }
 
-  #   instance_refresh = {
-  #     strategy = "Rolling"
-  #     preferences = {
-  #       min_healthy_percentage = 66
-  #     }
-  #   }
-  # }
+    # instance_refresh = {
+    #   strategy = "Rolling"
+    #   preferences = {
+    #     min_healthy_percentage = 66
+    #   }
+    # }
+  } : {}
 
-  # self_managed_node_groups = {
-  #   spot = {
-  #     instance_type = "m5.large"
-  #     instance_market_options = {
-  #       market_type = "spot"
-  #     }
+  self_managed_node_groups = (var.eks_type == "self_managed") ? {
+    # spot = {
+    #   instance_type = "m5.large"
+    #   instance_market_options = {
+    #     market_type = "spot"
+    #   }
 
-  #     pre_bootstrap_user_data = <<-EOT
-  #       echo "foo"
-  #       export FOO=bar
-  #     EOT
+    #   pre_bootstrap_user_data = <<-EOT
+    #     echo "foo"
+    #     export FOO=bar
+    #   EOT
 
-  #     bootstrap_extra_args = "--kubelet-extra-args '--node-labels=node.kubernetes.io/lifecycle=spot'"
+    #   bootstrap_extra_args = "--kubelet-extra-args '--node-labels=node.kubernetes.io/lifecycle=spot'"
 
-  #     post_bootstrap_user_data = <<-EOT
-  #       cd /tmp
-  #       sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
-  #       sudo systemctl enable amazon-ssm-agent
-  #       sudo systemctl start amazon-ssm-agent
-  #     EOT
-  #   }
-  # }
+    #   post_bootstrap_user_data = <<-EOT
+    #     cd /tmp
+    #     sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+    #     sudo systemctl enable amazon-ssm-agent
+    #     sudo systemctl start amazon-ssm-agent
+    #   EOT
+    # }
+  } : {}
 
   # EKS Managed Node Group(s)
+  # eks_managed_node_group_defaults = (var.eks_type == "eks_managed") ? ({
+  #   ami_type       = "${var.ami_type}"
+  #   instance_types = "${var.instance_types}"
+
+  #   attach_cluster_primary_security_group = true
+  #   vpc_security_group_ids                = [aws_security_group.additional.id]
+  #   iam_role_additional_policies = {
+  #     additional               = aws_iam_policy.additional.arn
+  #     AmazonEBSCSIDriverPolicy = var.create_ebs_csi_driver ? "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" : null
+  #   }
+  # }) : ({})
   eks_managed_node_group_defaults = {
-    ami_type       = "AL2_x86_64"
-    instance_types = var.instance_types
+    ami_type       = "${var.ami_type}"
+    instance_types = "${var.instance_types}"
 
     attach_cluster_primary_security_group = true
     vpc_security_group_ids                = [aws_security_group.additional.id]
     iam_role_additional_policies = {
-      additional = aws_iam_policy.additional.arn
+      additional               = aws_iam_policy.additional.arn
       AmazonEBSCSIDriverPolicy = var.create_ebs_csi_driver ? "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" : null
     }
   }
 
+  # eks_managed_node_groups = (var.eks_type == "eks_managed") ? {
   eks_managed_node_groups = {
     # blue = {}
     green = {
@@ -154,34 +166,35 @@ module "eks" {
 
       tags = var.tags
     }
+    # } : {}
   }
 
   # # Fargate Profile(s)
-  # fargate_profiles = {
-  #   default = {
-  #     name = "default"
-  #     selectors = [
-  #       {
-  #         namespace = "kube-system"
-  #         labels = {
-  #           k8s-app = "kube-dns"
-  #         }
-  #       },
-  #       {
-  #         namespace = "default"
-  #       }
-  #     ]
+  fargate_profiles = (var.eks_type == "fargate") ? {
+    #   defFault = {
+    #     name = "default"
+    #     selectors = [
+    #       {
+    #         namespace = "kube-system"
+    #         labels = {
+    #           k8s-app = "kube-dns"
+    #         }
+    #       },
+    #       {
+    #         namespace = "default"
+    #       }
+    #     ]
 
-  #     tags = {
-  #       Owner = "test"
-  #     }
+    #     tags = {
+    #       Owner = "test"
+    #     }
 
-  #     timeouts = {
-  #       create = "20m"
-  #       delete = "20m"
-  #     }
-  #   }
-  # }
+    #     timeouts = {
+    #       create = "20m"
+    #       delete = "20m"
+    #     }
+    #   }
+  } : {}
 
   # Create a new cluster where both an identity provider and Fargate profile is created
   # will result in conflicts since only one can take place at a time
