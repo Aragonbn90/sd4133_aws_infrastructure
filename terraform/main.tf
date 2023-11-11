@@ -1,10 +1,11 @@
 terraform {
   cloud {
-    organization = "neon-nights"
+    organization = "sd4133"
 
     workspaces {
-      name = "sd4133-infrastructure"
+      name = "sd4133-aws-infrastructure"
     }
+
   }
 
   required_providers {
